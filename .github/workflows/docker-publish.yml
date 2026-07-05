@@ -1,0 +1,55 @@
+name: Docker Build & Publish
+
+# Baut das Docker-Image bei jedem Push auf main sowie bei Git-Tags im Format "v*"
+# (z.B. v1.0.0) und veröffentlicht es unter epyx/streamdesk auf Docker Hub.
+#
+# Voraussetzung: In den Repository-Settings (Settings → Secrets and variables →
+# Actions) müssen folgende Secrets hinterlegt sein:
+#   DOCKERHUB_USERNAME  – Docker-Hub-Benutzername (epyx)
+#   DOCKERHUB_TOKEN     – Docker-Hub Access Token (NICHT das Account-Passwort;
+#                         erstellbar unter hub.docker.com/settings/security)
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Docker-Metadaten (Tags/Labels) ermitteln
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: epyx/streamdesk
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+
+      - name: QEMU einrichten (Multi-Arch-Support)
+        uses: docker/setup-qemu-action@v3
+
+      - name: Docker Buildx einrichten
+        uses: docker/setup-buildx-action@v3
+
+      - name: Bei Docker Hub anmelden
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Image bauen und pushen
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

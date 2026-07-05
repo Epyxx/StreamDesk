@@ -158,6 +158,92 @@ npm run dev
 Anschließend die Anwendung unter [http://localhost:3000](http://localhost:3000) öffnen und über
 **„Mit Twitch anmelden"** einloggen.
 
+## 🐳 Docker
+
+StreamDesk ist zustandslos auf Server-Seite (der eigentliche Chat-/Event-Verlauf liegt im
+`localStorage` des Browsers) – ein Container benötigt daher **kein** Volume für persistente Daten,
+lediglich die drei Twitch-Umgebungsvariablen.
+
+### Fertiges Image von Docker Hub
+
+```bash
+docker run -d \
+  --name streamdesk \
+  --restart unless-stopped \
+  -p 3000:3000 \
+  -e TWITCH_CLIENT_ID=deine_client_id \
+  -e TWITCH_CLIENT_SECRET=dein_client_secret \
+  -e TWITCH_REDIRECT_URI=https://example.com/streamdesk/callback \
+  epyx/streamdesk:latest
+```
+
+Oder mit einer `.env`-Datei statt einzelner `-e`-Flags:
+
+```bash
+docker run -d --name streamdesk --restart unless-stopped -p 3000:3000 --env-file .env epyx/streamdesk:latest
+```
+
+### Selbst bauen
+
+```bash
+git clone https://github.com/Epyxx/StreamDesk.git
+cd StreamDesk
+docker build -t streamdesk .
+docker run -d --name streamdesk --restart unless-stopped -p 3000:3000 --env-file .env streamdesk
+```
+
+### Mit Docker Compose
+
+```bash
+docker compose up -d --build
+```
+
+(`docker-compose.yml` liegt bereits im Repo – baut standardmäßig lokal aus dem Quellcode; die
+`image:`-Zeile darin kann alternativ auskommentiert werden, um stattdessen direkt
+`epyx/streamdesk:latest` von Docker Hub zu verwenden.)
+
+### Reverse Proxy vor dem Container (Unterverzeichnis + WebSocket)
+
+Läuft der Container – wie im Abschnitt oben beschrieben – hinter einem Reverse Proxy unter einem
+Unterverzeichnis, muss dieser sowohl normale HTTP-Requests als auch WebSocket-Upgrades an
+`http://<container-host>:3000/` weiterleiten. Zwei Beispiele:
+
+**Apache** (≥ 2.4.47, benötigt `a2enmod proxy proxy_http proxy_wstunnel headers`):
+
+```apache
+<Location /streamdesk/>
+    ProxyPass http://127.0.0.1:3000/ upgrade=websocket
+    ProxyPassReverse http://127.0.0.1:3000/
+</Location>
+```
+
+**nginx**:
+
+```nginx
+location /streamdesk/ {
+    proxy_pass http://127.0.0.1:3000/;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host $host;
+}
+```
+
+In beiden Fällen `TWITCH_REDIRECT_URI` (siehe oben) exakt auf die öffentliche
+`.../streamdesk/callback`-URL setzen und identisch in der Twitch Developer Console hinterlegen.
+
+### Automatischer Build & Publish (für Maintainer)
+
+`.github/workflows/docker-publish.yml` baut das Image bei jedem Push auf `main` sowie bei
+Git-Tags (`v*`) automatisch für `linux/amd64` und `linux/arm64` und veröffentlicht es als
+`epyx/streamdesk` auf Docker Hub. Dafür müssen einmalig zwei Secrets im Repository hinterlegt
+werden (**Settings → Secrets and variables → Actions → New repository secret**):
+
+| Secret | Wert |
+|---|---|
+| `DOCKERHUB_USERNAME` | Docker-Hub-Benutzername (`epyx`) |
+| `DOCKERHUB_TOKEN` | Docker-Hub **Access Token** (nicht das Account-Passwort) – erstellbar unter [hub.docker.com/settings/security](https://hub.docker.com/settings/security) |
+
 ## 🔑 Verwendete Twitch-Scopes
 
 | Scope | Zweck |

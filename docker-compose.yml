@@ -1,0 +1,12 @@
+services:
+  streamdesk:
+    # Lokal aus dem Quellcode bauen ...
+    build: .
+    # ... oder alternativ das fertige Image von Docker Hub verwenden:
+    # image: epyx/streamdesk:latest
+    container_name: streamdesk
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
