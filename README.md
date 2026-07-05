@@ -8,6 +8,10 @@ zusätzliche Installation auf Zuschauerseite.
 
 🐙 by [Epyx](https://github.com/Epyxx)
 
+[![Docker Pulls](https://img.shields.io/docker/pulls/epyx/streamdesk?logo=docker&label=pulls)](https://hub.docker.com/r/epyx/streamdesk)
+[![Docker Image Version](https://img.shields.io/docker/v/epyx/streamdesk?logo=docker&label=latest)](https://hub.docker.com/r/epyx/streamdesk)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 ---
 
 ## ✨ Features
@@ -160,6 +164,8 @@ Anschließend die Anwendung unter [http://localhost:3000](http://localhost:3000)
 
 ## 🐳 Docker
 
+📦 **Docker Hub:** [hub.docker.com/r/epyx/streamdesk](https://hub.docker.com/r/epyx/streamdesk)
+
 StreamDesk ist zustandslos auf Server-Seite (der eigentliche Chat-/Event-Verlauf liegt im
 `localStorage` des Browsers) – ein Container benötigt daher **kein** Volume für persistente Daten,
 lediglich die drei Twitch-Umgebungsvariablen.
@@ -236,8 +242,10 @@ In beiden Fällen `TWITCH_REDIRECT_URI` (siehe oben) exakt auf die öffentliche
 
 `.github/workflows/docker-publish.yml` baut das Image bei jedem Push auf `main` sowie bei
 Git-Tags (`v*`) automatisch für `linux/amd64` und `linux/arm64` und veröffentlicht es als
-`epyx/streamdesk` auf Docker Hub. Dafür müssen einmalig zwei Secrets im Repository hinterlegt
-werden (**Settings → Secrets and variables → Actions → New repository secret**):
+`epyx/streamdesk` auf Docker Hub. Bei Pushes auf `main` wird zusätzlich die Kurzbeschreibung und
+die ausführliche Overview-Seite des Docker-Hub-Repositories aus [`docker/README.md`](docker/README.md)
+aktuell gehalten. Dafür müssen einmalig zwei Secrets im Repository hinterlegt werden
+(**Settings → Secrets and variables → Actions → New repository secret**):
 
 | Secret | Wert |
 |---|---|

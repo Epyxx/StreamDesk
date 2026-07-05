@@ -53,3 +53,16 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      # Hält Kurzbeschreibung + ausführliche Overview-Seite auf Docker Hub automatisch
+      # synchron mit docker/README.md - nur bei Pushes auf main, damit Tag-Builds (Releases)
+      # nicht unnötig dieselbe Beschreibung erneut schreiben.
+      - name: Docker-Hub-Beschreibung aktualisieren
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: peter-evans/dockerhub-description@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: epyx/streamdesk
+          short-description: "Browserbasiertes Twitch-Chat- & Moderations-Tool mit OAuth-Login, Multi-Channel-Chat und Mod-Tools"
+          readme-filepath: ./docker/README.md
