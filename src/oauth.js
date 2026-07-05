@@ -121,8 +121,13 @@ async function performLogin(ws, cs, oauthToken) {
 }
 
 // Registriert die /callback-Route, die Twitch nach dem Login im OAuth-Popup aufruft.
+// Regex statt fixem String, damit die Route unabhängig davon greift, ob ein davorgeschalteter
+// Reverse-Proxy einen Unterverzeichnis-Präfix (z.B. /streamdesk) beim Weiterleiten abschneidet
+// oder unverändert durchreicht (z.B. /streamdesk/callback) - entscheidend ist nur, dass
+// TWITCH_REDIRECT_URI exakt der öffentlich erreichbaren URL entspricht, die auch in der
+// Twitch-Developer-Console als OAuth Redirect URL hinterlegt ist.
 function registerOAuthCallback(app) {
-    app.get('/callback', async (req, res) => {
+    app.get(/\/callback$/, async (req, res) => {
         const { code, state } = req.query;
         if (!code || !state) return res.status(400).send('Fehlende Parameter.');
         const entry = oauthStates.get(state);

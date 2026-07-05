@@ -122,7 +122,28 @@ PORT=3000
 > ⚠️ Die `.env`-Datei enthält geheime Zugangsdaten und darf niemals committet werden
 > (sie ist bereits über `.gitignore` ausgeschlossen).
 
-### 4. Server starten
+### 4. Hosting unter einem Unterverzeichnis (Reverse Proxy)
+
+Wird StreamDesk über einen Reverse Proxy erreichbar gemacht (z.B. `https://example.com/streamdesk`
+statt `http://localhost:3000`), **muss** `TWITCH_REDIRECT_URI` exakt auf die öffentlich
+erreichbare Callback-URL zeigen:
+
+```env
+TWITCH_REDIRECT_URI=https://example.com/streamdesk/callback
+```
+
+Diese URL muss **zusätzlich identisch** als OAuth Redirect URL in der
+[Twitch Developer Console](https://dev.twitch.tv/console/apps) hinterlegt sein – Twitch leitet
+den Browser nach dem Login exakt an die dort registrierte (und hier konfigurierte) Adresse
+weiter. Bleibt `TWITCH_REDIRECT_URI` auf `http://localhost:3000/callback` stehen, während die App
+öffentlich unter einer anderen Adresse läuft, landet der Login-Redirect fälschlicherweise auf
+`localhost` statt auf der öffentlichen URL.
+
+Der Reverse Proxy muss außerdem WebSocket-Upgrades (nicht nur normale HTTP-Requests) für
+denselben Pfad an den Node-Prozess durchreichen, da die Live-Verbindung (Chat, Events, ...) über
+WebSocket läuft.
+
+### 5. Server starten
 
 ```bash
 npm start
