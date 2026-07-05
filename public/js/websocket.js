@@ -1,5 +1,8 @@
 function connectWebSocket() {
-    const wsUrl = `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}`;
+    // location.pathname statt nur location.host verwenden, damit die Verbindung auch
+    // funktioniert, wenn die App über einen Reverse-Proxy in einem Unterverzeichnis
+    // (z.B. https://example.com/streamdesk/) statt im Wurzelverzeichnis läuft.
+    const wsUrl = `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}${location.pathname}`;
     STATE.ws = new WebSocket(wsUrl);
     STATE.ws.onopen = () => {
         STATE.connected = true;

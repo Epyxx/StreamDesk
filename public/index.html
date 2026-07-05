@@ -4,6 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StreamDesk v1.0 – Twitch Mod‑Panel</title>
+    <script>
+        // Wenn die App über einen Reverse-Proxy in einem Unterverzeichnis läuft (z.B.
+        // https://example.com/streamdesk) und OHNE abschließenden Schrägstrich aufgerufen wird,
+        // lösen relative Pfade (css/..., js/...) sonst gegen das übergeordnete Verzeichnis auf
+        // (Browser behandeln das letzte Pfadsegment ohne "/" als Datei). Vor dem Laden jeglicher
+        // relativer Ressourcen einmalig auf die Variante mit "/" umleiten, danach lösen alle
+        // relativen Pfade wieder korrekt auf.
+        if (!location.pathname.endsWith('/')) {
+            location.replace(location.pathname + '/' + location.search + location.hash);
+        }
+    </script>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
