@@ -6,7 +6,7 @@ bietet Moderatoren direkten Zugriff auf Timeouts, Bans, Nachrichten-Löschung, U
 Predictions und detaillierte User-Infos – alles in einem schlanken Web-Interface ohne
 zusätzliche Installation auf Zuschauerseite.
 
-🐙 by [Epyx](https://github.com/Epyx)
+🐙 by [Epyx](https://github.com/Epyxx)
 
 ---
 
@@ -86,8 +86,8 @@ project/
 ### 1. Repository klonen & Abhängigkeiten installieren
 
 ```bash
-git clone https://github.com/Epyx/streamdesk.git
-cd streamdesk
+git clone https://github.com/Epyxx/StreamDesk.git
+cd StreamDesk
 npm install
 ```
 
@@ -186,4 +186,4 @@ Dieses Projekt steht unter der [MIT-Lizenz](LICENSE).
 - [tmi.js](https://github.com/tmijs/tmi.js) – Twitch-IRC-Client
 - [FrankerFaceZ](https://www.frankerfacez.com/), [BetterTTV](https://betterttv.com/),
   [7TV](https://7tv.app/) – Drittanbieter-Emotes
-- Entwickelt von [Epyx](https://github.com/Epyx)
+- Entwickelt von [Epyx](https://github.com/Epyxx)
