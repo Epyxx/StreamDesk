@@ -127,19 +127,8 @@ async function handleResolvePrediction(ws, cs, msg) {
 async function handleJoinChannel(ws, cs, channel) {
     const ch = channel.replace('#', '').toLowerCase();
     if (ch === cs.username) cs.isModerator[ch] = true; // eigener Channel: immer volle Mod-Rechte
-    let baselineTimeout = null;
     if (!cs.channels.has(ch)) {
         log('CHANNEL', `Trete #${ch} bei`);
-        // Bis die erste Roster-Momentaufnahme vorliegt (siehe refreshUserList unten), gelten
-        // eingehende JOIN/PART-Events als "Vorstellung" der schon anwesenden Chatter (Twitch
-        // schickt davon oft einen ganzen Schwall direkt nach dem Verbinden) - nur die Liste wird
-        // aktualisiert, keine Chat-/Event-Meldung dafür. Ein fester Zeitfenster-Timer allein war
-        // hier zu unzuverlässig (bei größeren Channels/langsamen Helix-Antworten liefen einzelne
-        // "echte" JOIN-Events erst NACH Fensterende ein und spammten den Chat) - daher zusätzlich
-        // an das tatsächliche Ende des ersten Roster-Abrufs gekoppelt; das Zeitlimit bleibt nur
-        // als Sicherheitsnetz, falls dieser ungewöhnlich lange braucht oder fehlschlägt.
-        cs.rosterBaselineReady[ch] = false;
-        baselineTimeout = setTimeout(() => { cs.rosterBaselineReady[ch] = true; }, 10000);
         await cs.tmiClient.join('#' + ch);
         cs.channels.add(ch);
         if (!cs.recentMessages[ch]) cs.recentMessages[ch] = [];
@@ -156,15 +145,35 @@ async function handleJoinChannel(ws, cs, channel) {
             }, delay);
         });
     }
-    // refreshUserList/refreshPollAndPrediction loggen Fehler bereits selbst und werfen nie
-    // erneut - der catch hier ist nur ein Sicherheitsnetz, keine eigene Fehlermeldung nötig.
-    // .finally() markiert die Roster-Baseline als bereit, sobald der erste Abruf (egal ob
-    // erfolgreich oder nicht) durchgelaufen ist - bei einem erneuten Aufruf für einen bereits
-    // gejointen Channel ist die Baseline ohnehin schon bereit, das .finally() dann ein No-Op.
-    refreshUserList(ws, cs, ch).catch(() => {}).finally(() => {
-        if (baselineTimeout) clearTimeout(baselineTimeout);
-        cs.rosterBaselineReady[ch] = true;
-    });
+
+    // Roster-Baseline: Bis sie steht, gelten eingehende JOIN/PART-IRC-Events als "Vorstellung" der
+    // schon anwesenden Chatter (Twitch schickt davon oft einen ganzen Schwall direkt nach dem
+    // Verbinden) statt als echte Meldung - siehe tmiEvents.js. Gilt bei JEDEM (Neu-)Beitritt über
+    // IRC, nicht nur beim allerersten Channel-Join dieser WS-Verbindung: Nach einem Reconnect baut
+    // tmi.js eine komplett neue IRC-Verbindung auf, wodurch Twitch den Anwesenheits-Schwall erneut
+    // schickt, unabhängig davon, ob der Channel serverseitig schon aus dem wiederhergestellten
+    // Zustand bekannt war.
+    //
+    // Kombiniert bewusst zwei Signale, weil keins davon allein zuverlässig ist:
+    // - eine Mindestwartezeit, da der IRC-Schwall bei größeren/aktiveren Channels länger dauern
+    //   kann als der erste Roster-Abruf (der allein hätte die Baseline zu früh "bereit" gemeldet
+    //   und dadurch noch mitten im Schwall eintreffende JOINs fälschlich als echt behandelt)
+    // - das tatsächliche Ende des ersten Roster-Abrufs, da der bei langsamen Helix-Antworten
+    //   wiederum länger als die Mindestwartezeit brauchen kann
+    // Ein zusätzliches Sicherheitsnetz-Timeout verhindert, dass die Baseline für immer "nicht
+    // bereit" bleibt, falls der Roster-Abruf nie durchläuft.
+    if (!cs.rosterBaselineReady[ch]) {
+        const minDelay = new Promise(resolve => setTimeout(resolve, 10000));
+        const safetyTimeout = setTimeout(() => { cs.rosterBaselineReady[ch] = true; }, 20000);
+        Promise.all([refreshUserList(ws, cs, ch).catch(() => {}), minDelay]).then(() => {
+            clearTimeout(safetyTimeout);
+            cs.rosterBaselineReady[ch] = true;
+        });
+    } else {
+        // refreshUserList loggt Fehler bereits selbst und wirft nie erneut - der catch hier ist
+        // nur ein Sicherheitsnetz, keine eigene Fehlermeldung nötig.
+        refreshUserList(ws, cs, ch).catch(() => {});
+    }
 
     let broadcasterId = cs.broadcasterIds[ch] || null;
     if (!broadcasterId) {
@@ -181,7 +190,18 @@ async function handleJoinChannel(ws, cs, channel) {
         const [thirdPartyEmotes, twitchUserEmotes] = await Promise.all([
             getEmotes(ch, cs.clientId, cs.appAccessToken, broadcasterId),
             broadcasterId
-                ? fetchUserEmotes(cs.clientId, cs.oauthToken, cs.userId, broadcasterId).catch(e => { logWarn('EMOTES', `Eigene Twitch-Emotes für #${ch} fehlgeschlagen: ${e.message}`); return []; })
+                ? fetchUserEmotes(cs.clientId, cs.oauthToken, cs.userId, broadcasterId).catch(e => {
+                    // 401/403 hier bedeutet fast immer: der gespeicherte OAuth-Token stammt noch
+                    // von vor der Einführung des Scopes user:read:emotes - der Token selbst wird
+                    // beim erneuten Verbinden aus dem localStorage wiederverwendet und erhält
+                    // NICHT automatisch neue Scopes. Nur ein bewusstes Aus- und wieder Einloggen
+                    // (neuer OAuth-Consent) behebt das.
+                    const hint = (e.status === 401 || e.status === 403)
+                        ? ' - fehlender Scope "user:read:emotes"? Bitte einmal aus- und wieder einloggen, damit ein neuer Token mit diesem Scope ausgestellt wird.'
+                        : '';
+                    logWarn('EMOTES', `Eigene Twitch-Emotes für #${ch} fehlgeschlagen: ${e.message}${hint}`);
+                    return [];
+                })
                 : Promise.resolve([]),
         ]);
         cs.emoteCache[ch] = { ...thirdPartyEmotes, twitch: twitchUserEmotes };
