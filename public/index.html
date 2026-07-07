@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StreamDesk v1.1 – Twitch Mod‑Panel</title>
+    <title>StreamDesk v1.2 – Twitch Mod‑Panel</title>
     <script>
         // Wenn die App über einen Reverse-Proxy in einem Unterverzeichnis läuft (z.B.
         // https://example.com/streamdesk) und OHNE abschließenden Schrägstrich aufgerufen wird,
@@ -21,11 +21,11 @@
 <div id="app" style="display:none;">
     <div id="topbar">
         <span id="status-indicator" class="offline" title="Verbindungsstatus"></span>
-        <strong style="font-size:14px;">StreamDesk v1.1</strong>
+        <strong style="font-size:14px;">StreamDesk v1.2</strong>
         <span class="credit-line">🐙 <a href="https://github.com/Epyxx" target="_blank">by Epyx</a></span>
-        <button class="btn-outline btn-sm" id="btn-userlist">👥 User/Events</button>
-        <button class="btn-outline btn-sm" id="btn-join-channel">➕ Channel</button>
-        <button class="btn-outline btn-sm" id="btn-filter">🔍 Filter</button>
+        <button class="btn-outline btn-sm" id="btn-userlist" title="User/Events ein-/ausblenden (Alt+U)">👥 User/Events</button>
+        <button class="btn-outline btn-sm" id="btn-join-channel" title="Neuem Channel beitreten (Alt+J)">➕ Channel</button>
+        <button class="btn-outline btn-sm" id="btn-filter" title="Wortfilter (Alt+F)">🔍 Filter</button>
         <span style="flex:1;"></span>
         <span id="connected-as" style="font-size:12px;color:var(--text2);"></span>
         <span id="storage-panel" title="Lokal gespeicherte Nachrichten/Events/User-Listen" style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text2);">
@@ -44,7 +44,8 @@
                     <div id="emote-picker-search"><input type="text" id="emote-picker-search-input" placeholder="Emote suchen..."></div>
                     <div id="emote-picker-content"></div>
                 </div>
-                <input type="text" id="chat-input" placeholder="Nachricht senden..." disabled>
+                <div id="emote-search-dropdown" class="hidden"></div>
+                <div id="chat-input" class="chat-input-editable" contenteditable="false" data-placeholder="Nachricht senden..." role="textbox" aria-multiline="false"></div>
                 <button id="btn-emote-picker" class="btn-outline btn-sm" type="button" title="Emotes" disabled>😀</button>
                 <button id="btn-send" class="btn-primary btn-sm" disabled>Senden</button>
             </div>
@@ -73,7 +74,7 @@
 </div>
 
 <div id="login-screen">
-    <h2>🔐 StreamDesk v1.1</h2>
+    <h2>🔐 StreamDesk v1.2</h2>
     <div class="login-box">
         <p style="font-size:13px;color:var(--text2);">Verbinde dich sicher mit deinem Twitch‑Account.</p>
         <button class="btn-primary login-oauth-btn" id="btn-login-oauth" style="width:100%;padding:10px;">🔑 Mit Twitch anmelden</button>
@@ -142,6 +143,7 @@
 <script src="js/sidebar.js"></script>
 <script src="js/userPanel.js"></script>
 <script src="js/emotePicker.js"></script>
+<script src="js/chatInput.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

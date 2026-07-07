@@ -39,7 +39,7 @@ function renderEmotePicker() {
             const item = document.createElement('div'); item.className = 'emote-picker-item'; item.title = it.code;
             const img = document.createElement('img'); img.src = it.url; img.alt = it.code; img.loading = 'lazy';
             item.appendChild(img);
-            item.addEventListener('click', () => insertEmoteIntoInput(it.code));
+            item.addEventListener('click', () => insertEmoteChip(it.code, it.url));
             grid.appendChild(item);
         });
         dom.emotePickerContent.appendChild(grid);
@@ -50,26 +50,10 @@ function renderEmotePicker() {
     }
 }
 
-// Fügt den Emote-Code an der aktuellen Cursor-Position ein (statt ihn immer nur anzuhängen),
-// inkl. automatischer Leerzeichen zur Abgrenzung von umliegendem Text.
-function insertEmoteIntoInput(code) {
-    const input = dom.chatInput;
-    const start = input.selectionStart ?? input.value.length;
-    const end = input.selectionEnd ?? input.value.length;
-    const before = input.value.slice(0, start);
-    const after = input.value.slice(end);
-    const needsLeadingSpace = before.length > 0 && !before.endsWith(' ');
-    const needsTrailingSpace = after.length > 0 && !after.startsWith(' ');
-    const insertion = `${needsLeadingSpace ? ' ' : ''}${code}${needsTrailingSpace ? ' ' : ''} `;
-    input.value = before + insertion + after;
-    const cursorPos = (before + insertion).length;
-    input.focus();
-    input.setSelectionRange(cursorPos, cursorPos);
-}
-
 function toggleEmotePicker(forceOpen) {
     const shouldOpen = forceOpen !== undefined ? forceOpen : dom.emotePicker.classList.contains('hidden');
     if (shouldOpen) {
+        closeEmoteSearchDropdown(); // beide Overlays direkt über dem Eingabefeld - nie gleichzeitig
         dom.emotePicker.classList.remove('hidden');
         dom.emotePickerSearchInput.value = '';
         renderEmotePicker();

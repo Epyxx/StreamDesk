@@ -109,6 +109,7 @@ function renderTabs() {
         tab.innerHTML = `<span>#${ch.name}</span>`;
         if (unread > 0) { const b = document.createElement('span'); b.className='unread-badge'; b.textContent=unread; b.style.display='inline-block'; tab.appendChild(b); }
         const close = document.createElement('span'); close.className='close-tab'; close.textContent='✕';
+        close.title = ch.name === STATE.activeChannel ? 'Channel verlassen (Alt+W)' : 'Channel verlassen';
         close.onclick = e => { e.stopPropagation(); sendToServer({ type:'leave_channel', channel:ch.name }); };
         tab.appendChild(close);
         tab.onclick = () => switchTab(ch.name);

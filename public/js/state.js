@@ -6,7 +6,7 @@ const LS_KEYS = {
     USERMSG: (ch, login) => `streamdesk_usermsg_${ch}_${login}`, USERMSG_PREFIX: (ch) => `streamdesk_usermsg_${ch}_`,
     VERSION: 'streamdesk_version'
 };
-const APP_VERSION = '1.1';
+const APP_VERSION = '1.2';
 
 // ========== LOGGING ==========
 // Bewusst schlank: nur wichtige Lebenszyklus-Ereignisse (Verbindung, Login, Channel-Beitritt,
@@ -26,7 +26,8 @@ const STATE = {
     userLists: {}, emotes: {}, filters: {}, botList: new Set(), pendingUserInfo: null,
     unreadCounts: {}, badgeMap: {}, channelEvents: {}, autoScroll: {}, seenMessageIds: {}, canModerate: {},
     activePolls: {}, activePredictions: {},
-    sidebarMode: 'users', ownUsername: '', oauthPopup: null, saveInterval: null, reconnectAttempts: 0
+    sidebarMode: 'users', ownUsername: '', oauthPopup: null, saveInterval: null, reconnectAttempts: 0,
+    emoteSearch: { active: false, query: '', matches: [], selectedIndex: 0 }
 };
 
 const $ = (sel) => document.querySelector(sel);
@@ -42,6 +43,7 @@ const dom = {
     modalPoll: $('#modal-poll'), pollTitle: $('#poll-title'), pollChoices: $('#poll-choices'), pollDuration: $('#poll-duration'),
     modalPrediction: $('#modal-prediction'), predictionTitle: $('#prediction-title'), predictionOutcomes: $('#prediction-outcomes'), predictionWindow: $('#prediction-window'),
     btnEmotePicker: $('#btn-emote-picker'), emotePicker: $('#emote-picker'), emotePickerSearchInput: $('#emote-picker-search-input'), emotePickerContent: $('#emote-picker-content'),
+    emoteSearchDropdown: $('#emote-search-dropdown'),
 };
 
 function showToast(msg) { const t = document.createElement('div'); t.className='toast'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),3000); }
