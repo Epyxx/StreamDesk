@@ -6,7 +6,7 @@ const LS_KEYS = {
     USERMSG: (ch, login) => `streamdesk_usermsg_${ch}_${login}`, USERMSG_PREFIX: (ch) => `streamdesk_usermsg_${ch}_`,
     VERSION: 'streamdesk_version'
 };
-const APP_VERSION = '1.2';
+const APP_VERSION = '1.2.2';
 
 // ========== LOGGING ==========
 // Bewusst schlank: nur wichtige Lebenszyklus-Ereignisse (Verbindung, Login, Channel-Beitritt,
@@ -25,7 +25,7 @@ const STATE = {
     ws: null, connected: false, loggedIn: false, channels: [], activeChannel: null,
     userLists: {}, emotes: {}, filters: {}, botList: new Set(), pendingUserInfo: null,
     unreadCounts: {}, badgeMap: {}, channelEvents: {}, autoScroll: {}, seenMessageIds: {}, canModerate: {},
-    activePolls: {}, activePredictions: {},
+    activePolls: {}, activePredictions: {}, broadcasterIds: {},
     sidebarMode: 'users', ownUsername: '', oauthPopup: null, saveInterval: null, reconnectAttempts: 0,
     emoteSearch: { active: false, query: '', matches: [], selectedIndex: 0 }
 };

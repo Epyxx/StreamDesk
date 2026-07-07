@@ -220,12 +220,39 @@ async function getEmotes(channel, clientId, appAccessToken, broadcasterId) {
 // Emotes, Follower-Emotes des Channels falls gefolgt, sowie sämtliche globalen Twitch-Emotes) -
 // genau das, was tmi.js für selbst gesendete Nachrichten bräuchte, aber mangels funktionierender
 // API nie liefert (siehe findEmotesInText in helpers.js). Erfordert Scope user:read:emotes.
+// Diese Emote-Typen hängen an einem konkreten Channel (Sub-/Bit-Tier-/Follower-/Channelpoints-
+// Emotes) - alle anderen (globals, smilies, prime, turbo, ...) sind kanalunabhängig nutzbar und
+// werden im Client als "Global" gruppiert statt einem einzelnen Channel zugeordnet.
+const CHANNEL_SPECIFIC_EMOTE_TYPES = new Set(['subscriptions', 'bitstier', 'follower', 'channelpoints', 'rewards']);
+
 async function fetchUserEmotes(clientId, oauthToken, userId, broadcasterId) {
-    return fetchAllPages(
+    const emotes = await fetchAllPages(
         `chat/emotes/user?user_id=${userId}&broadcaster_id=${broadcasterId}`,
         clientId, oauthToken,
-        e => ({ id: e.id, name: e.name })
+        e => ({ id: e.id, name: e.name, type: e.emote_type, ownerId: e.owner_id })
     );
+
+    // Anzeigenamen der jeweiligen Broadcaster auflösen, damit der Client kanalspezifische Emotes
+    // (z.B. eigene Sub-Emotes aus mehreren abonnierten Channels) sauber nach Channel gruppieren
+    // kann, statt alle Twitch-Emotes in einen einzigen Topf zu werfen.
+    const ownerIds = [...new Set(
+        emotes.filter(e => CHANNEL_SPECIFIC_EMOTE_TYPES.has(e.type) && e.ownerId).map(e => e.ownerId)
+    )];
+    if (ownerIds.length) {
+        try {
+            const ownerNames = {};
+            for (let i = 0; i < ownerIds.length; i += 100) {
+                const batch = ownerIds.slice(i, i + 100);
+                const data = await fetchHelix(`users?id=${batch.join('&id=')}`, clientId, oauthToken);
+                (data.data || []).forEach(u => { ownerNames[u.id] = u.display_name; });
+            }
+            emotes.forEach(e => { if (e.ownerId && ownerNames[e.ownerId]) e.ownerName = ownerNames[e.ownerId]; });
+        } catch (e) {
+            logWarn('EMOTES', `Broadcaster-Namen für Emote-Gruppierung nicht auflösbar: ${e.message}`);
+        }
+    }
+
+    return emotes;
 }
 
 module.exports = {

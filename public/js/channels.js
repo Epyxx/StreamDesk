@@ -43,6 +43,7 @@ function handleChannelJoined(msg) {
     const ch = msg.channel;
     if (msg.emotes) STATE.emotes[ch] = msg.emotes;
     if (msg.badgeMap) STATE.badgeMap[ch] = msg.badgeMap;
+    if (msg.broadcasterId) STATE.broadcasterIds[ch] = msg.broadcasterId;
 
     if (!STATE.channels.find(c => c.name === ch)) {
         STATE.channels.push({ name: ch });
@@ -73,7 +74,7 @@ function handleChannelJoined(msg) {
 function handleChannelLeft(msg) {
     const ch = msg.channel; const idx = STATE.channels.findIndex(c => c.name === ch);
     if (idx >= 0) STATE.channels.splice(idx, 1);
-    removeChannelDiv(ch); delete STATE.userLists[ch]; delete STATE.emotes[ch]; delete STATE.filters[ch]; delete STATE.unreadCounts[ch]; delete STATE.badgeMap[ch]; delete STATE.channelEvents[ch]; delete STATE.seenMessageIds[ch]; delete STATE.canModerate[ch];
+    removeChannelDiv(ch); delete STATE.userLists[ch]; delete STATE.emotes[ch]; delete STATE.filters[ch]; delete STATE.unreadCounts[ch]; delete STATE.badgeMap[ch]; delete STATE.channelEvents[ch]; delete STATE.seenMessageIds[ch]; delete STATE.canModerate[ch]; delete STATE.broadcasterIds[ch];
     delete STATE.activePolls[ch]; delete STATE.activePredictions[ch];
     // Channel-Speicher wird beim Verlassen (Tab schließen) vollständig geräumt
     localStorage.removeItem(LS_KEYS.MESSAGES(ch));
