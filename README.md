@@ -1,4 +1,4 @@
-# 🔐 StreamDesk v1.1
+# 🔐 StreamDesk v1.2.0
 
 A browser-based Twitch chat and moderation tool. StreamDesk securely connects to your Twitch
 account via OAuth, shows chat from multiple channels at once in tabs, and gives moderators
