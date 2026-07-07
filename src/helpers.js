@@ -16,6 +16,38 @@ function parseTwitchEmoteTags(emotesTag, message) {
     return result;
 }
 
+function escapeRegexLiteral(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+// Sucht bekannte Emote-Codes (wortgrenzenbasiert, wie die FFZ/BTTV/7TV-Erkennung clientseitig)
+// im Text und liefert sie im selben {id, start, end, name}-Format wie parseTwitchEmoteTags.
+// Wird für selbst gesendete Nachrichten gebraucht: Twitch echot PRIVMSGs nicht an den Absender
+// zurück, daher enthält deren "emotes"-Tag nie echte Positionen (siehe tmiEvents.js). Statt tmi.js'
+// interner Rekonstruktion - die auf eine seit Jahren abgeschaltete Twitch-Kraken-API angewiesen
+// ist und dadurch immer leer bleibt - wird hier direkt gegen die per Helix geladene Liste der dem
+// eingeloggten User tatsächlich zur Verfügung stehenden Twitch-Emotes abgeglichen.
+function findEmotesInText(message, emoteList) {
+    if (!emoteList?.length || !message) return [];
+    const tokens = [];
+    emoteList.forEach(emote => {
+        if (!emote.name) return;
+        const regex = new RegExp(`(?<![a-zA-Z0-9_])${escapeRegexLiteral(emote.name)}(?![a-zA-Z0-9_])`, 'g');
+        let match;
+        while ((match = regex.exec(message)) !== null) {
+            tokens.push({ id: emote.id, start: match.index, end: match.index + emote.name.length, name: emote.name });
+        }
+    });
+    // Nach Position sortieren, überlappende Treffer verwerfen (erster Treffer gewinnt) -
+    // vermeidet doppelte/verschachtelte Bild-Tokens, falls ein Emote-Code Teilstring eines
+    // anderen ist.
+    tokens.sort((a, b) => a.start - b.start);
+    const filtered = [];
+    let lastEnd = 0;
+    for (const t of tokens) {
+        if (t.start >= lastEnd) { filtered.push(t); lastEnd = t.end; }
+    }
+    return filtered;
+}
+
 function getReadableColor(username) {
     const colors = [
         '#FF0000','#0000FF','#008000','#B22222','#FF7F50','#9ACD32','#FF4500','#2E8B57','#DAA520','#D2691E',
@@ -29,4 +61,4 @@ function getReadableColor(username) {
     return color;
 }
 
-module.exports = { sendToClient, parseTwitchEmoteTags, getReadableColor };
+module.exports = { sendToClient, parseTwitchEmoteTags, findEmotesInText, getReadableColor };

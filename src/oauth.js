@@ -53,7 +53,7 @@ function saveStateOnDisconnect(clientState) {
 function handleStartOAuth(ws) {
     const state = crypto.randomBytes(16).toString('hex');
     oauthStates.set(state, { ws, createdAt: Date.now() });
-    const scopes = ['chat:read','chat:edit','channel:moderate','moderation:read','channel:read:subscriptions','moderator:read:followers','moderator:read:chatters','channel:read:vips','channel:read:polls','channel:manage:polls','channel:read:predictions','channel:manage:predictions'];
+    const scopes = ['chat:read','chat:edit','channel:moderate','moderation:read','channel:read:subscriptions','moderator:read:followers','moderator:read:chatters','channel:read:vips','channel:read:polls','channel:manage:polls','channel:read:predictions','channel:manage:predictions','user:read:emotes'];
     const url = `https://id.twitch.tv/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=${encodeURIComponent(scopes.join(' '))}&state=${state}`;
     sendToClient(ws, { type: 'oauth_url', url });
 }

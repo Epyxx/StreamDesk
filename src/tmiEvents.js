@@ -1,5 +1,5 @@
 const { fetchHelix } = require('./helixClient');
-const { sendToClient, parseTwitchEmoteTags, getReadableColor } = require('./helpers');
+const { sendToClient, parseTwitchEmoteTags, findEmotesInText, getReadableColor } = require('./helpers');
 const { log, logWarn } = require('./logger');
 const {
     parseNamesList, mergeUserList, setUserRole, sendUserListUpdate, markUserTimedOut,
@@ -24,7 +24,13 @@ function registerTmiEvents(ws, cs, tmiClient) {
         }
 
         if (!cs.recentMessages[ch]) cs.recentMessages[ch] = [];
-        const twitchEmotes = parseTwitchEmoteTags(tags.emotes, message);
+        // tags.emotes ist bei selbst gesendeten Nachrichten praktisch immer leer (siehe Kommentar
+        // oben) - stattdessen wird der Text gegen die beim Channel-Beitritt geladene Liste der
+        // dem eingeloggten User tatsächlich verfügbaren Twitch-Emotes abgeglichen (siehe
+        // findEmotesInText in helpers.js und fetchUserEmotes in twitchServices.js).
+        const twitchEmotes = self
+            ? findEmotesInText(message, cs.emoteCache?.[ch]?.twitch)
+            : parseTwitchEmoteTags(tags.emotes, message);
 
         const badges = [];
         if (tags.badges) Object.entries(tags.badges).forEach(([name, version]) => badges.push({ name, version }));
@@ -184,14 +190,14 @@ function registerTmiEvents(ws, cs, tmiClient) {
 
     // Join/Part als Live-Event. Twitch schickt beim frischen Verbinden oft einen Schwall JOIN-
     // Events für alle bereits anwesenden Chatter (keine echten Neuzugänge, nur die "Vorstellung"
-    // der aktuellen Runde) - tmi.js unterscheidet das nicht. Während des kurzen "Settling"-
-    // Fensters direkt nach dem Beitritt (siehe handleJoinChannel) wird die Userliste zwar
-    // aktualisiert, aber keine Chat-/Event-Meldung dafür angezeigt.
+    // der aktuellen Runde) - tmi.js unterscheidet das nicht. Bis die erste Roster-Momentaufnahme
+    // vorliegt (cs.rosterBaselineReady, siehe handleJoinChannel in wsHandlers.js) wird die
+    // Userliste zwar aktualisiert, aber keine Chat-/Event-Meldung dafür angezeigt.
     tmiClient.on('join', (channel, username, self) => {
         if (self) return;
         const ch = channel.replace('#', '');
         const lower = username.toLowerCase();
-        const isSettling = cs.joinSettling[ch] && Date.now() < cs.joinSettling[ch];
+        const isBaselineReady = !!cs.rosterBaselineReady[ch];
 
         const ulist = cs.userLists[ch];
         if (ulist && lower !== ch && !ulist.mods.has(lower) && !ulist.vips.has(lower) && !ulist.users.has(lower)) {
@@ -199,7 +205,7 @@ function registerTmiEvents(ws, cs, tmiClient) {
             sendUserListUpdate(ws, cs, ch);
         }
 
-        if (!isSettling) {
+        if (isBaselineReady) {
             sendToClient(ws, { type: 'chat_event', channel: ch, text: `→ {sender} ist dem Chat beigetreten`, sender: username, timestamp: Date.now(), isJoinPart: true });
         }
     });
@@ -208,7 +214,7 @@ function registerTmiEvents(ws, cs, tmiClient) {
         if (self) return;
         const ch = channel.replace('#', '');
         const lower = username.toLowerCase();
-        const isSettling = cs.joinSettling[ch] && Date.now() < cs.joinSettling[ch];
+        const isBaselineReady = !!cs.rosterBaselineReady[ch];
 
         const ulist = cs.userLists[ch];
         if (ulist) {
@@ -216,7 +222,7 @@ function registerTmiEvents(ws, cs, tmiClient) {
             sendUserListUpdate(ws, cs, ch);
         }
 
-        if (!isSettling) {
+        if (isBaselineReady) {
             sendToClient(ws, { type: 'chat_event', channel: ch, text: `← {sender} hat den Chat verlassen`, sender: username, timestamp: Date.now(), isJoinPart: true });
         }
     });

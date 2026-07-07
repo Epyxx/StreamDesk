@@ -1,10 +1,9 @@
-# 🔐 StreamDesk v1.0
+# 🔐 StreamDesk v1.1
 
-Ein browserbasiertes Twitch-Chat- und Moderations-Tool. StreamDesk verbindet sich per OAuth
-sicher mit deinem Twitch-Account, zeigt den Chat mehrerer Channels gleichzeitig in Tabs an und
-bietet Moderatoren direkten Zugriff auf Timeouts, Bans, Nachrichten-Löschung, Umfragen,
-Predictions und detaillierte User-Infos – alles in einem schlanken Web-Interface ohne
-zusätzliche Installation auf Zuschauerseite.
+A browser-based Twitch chat and moderation tool. StreamDesk securely connects to your Twitch
+account via OAuth, shows chat from multiple channels at once in tabs, and gives moderators
+direct access to timeouts, bans, message deletion, polls, predictions, and detailed user info –
+all in a lightweight web interface with no client-side installation required.
 
 🐙 by [Epyx](https://github.com/Epyxx)
 
@@ -16,78 +15,83 @@ zusätzliche Installation auf Zuschauerseite.
 
 ## ✨ Features
 
-- **Sicherer Login** ausschließlich über Twitch-OAuth (Authorization Code Flow) – es werden
-  niemals Zugangsdaten manuell eingegeben oder gespeichert
-- **Multi-Channel-Chat** mit Tabs, Lese-Badges für ungelesene Nachrichten und pro-Channel-Verlauf
-- **Live-Moderation**: Timeout (inkl. individueller Dauer), Ban/Unban, Nachrichten löschen –
-  direkt aus dem Chat oder dem User-Info-Panel
-- **User-Info-Panel** mit Account-Alter, Follow-Dauer, Abo-Status, Badges, Ban-/Timeout-Status,
-  letzten Nachrichten des Users und einem direkten Link zum Twitch-Profil
-- **Live-Rollen-Erkennung**: Mods/VIPs/Broadcaster werden farblich unterschieden, Beförderungen/
-  Degradierungen (Mod) kommen in Echtzeit an
-- **Event-Log** für Ankündigungen, Subs/Resubs/Gift-Subs, Cheers, Raids, Bans/Timeouts, gelöschte
-  Nachrichten sowie Join/Part-Events – inkl. persistenter Historie pro Channel
-- **Umfragen & Predictions**: erstellen, live mitverfolgen und verwalten (Broadcaster/Mod)
-- **Emote-Unterstützung**: native Twitch-Emotes sowie FFZ, BetterTTV und 7TV
-- **Wortfilter** pro Channel zur farblichen Hervorhebung bestimmter Begriffe
-- **Bot-Erkennung** bekannter Chat-Bots (z.B. Nightbot, StreamElements) in der User-Liste
-- **Lokale Persistenz**: Nachrichten, Events und User-Listen bleiben nach einem Reload erhalten
-  (localStorage), inkl. Speicher-Anzeige und manueller Aufräum-Funktion
-- **Automatischer Reconnect** von WebSocket und Twitch-IRC-Verbindung mit exponentiellem Backoff
-- **XSS-sichere Darstellung**: sämtlicher Nutzer-generierter Text (Chat, Ankündigungen,
-  Sub-/Cheer-Nachrichten, gelöschte Nachrichten) läuft durch dieselbe escaping- und
-  Link-/Emote-Erkennungs-Pipeline
+- **Secure login** exclusively via Twitch OAuth (Authorization Code Flow) – credentials are
+  never entered or stored manually
+- **Multi-channel chat** with tabs, unread badges, and per-channel history
+- **Live moderation**: timeout (with a custom duration), ban/unban, delete messages – directly
+  from the chat or the user info panel, with persistent action buttons (not hidden behind hover)
+  that are automatically hidden on your own messages, since Twitch doesn't allow self-moderation
+- **User info panel** with account age, follow duration, subscription status, badges,
+  ban/timeout status, the user's recent messages, and a direct link to their Twitch profile
+- **Live role detection**: mods/VIPs/broadcaster are color-coded, mod promotions/demotions arrive
+  in real time
+- **Event log** for announcements, subs/resubs/gift subs, cheers, raids, bans/timeouts, deleted
+  messages, and join/part events – with persistent per-channel history
+- **Polls & predictions**: create, follow live, and manage them (broadcaster/mod)
+- **Emote support**: native Twitch emotes (including your own subscriber emotes, correctly
+  resolved across every channel you join) plus channel and global FFZ, BetterTTV, and 7TV emotes,
+  with a built-in **emote picker** in the chat input showing every emote you can actually use in
+  the current channel
+- **Word filter** per channel to highlight specific terms
+- **Bot detection** for known chat bots (e.g. Nightbot, StreamElements) in the user list
+- **Local persistence**: messages, events, and user lists survive a reload (localStorage),
+  including a storage usage display and manual cleanup
+- **Automatic reconnect** for both the WebSocket and the Twitch IRC connection with exponential
+  backoff
+- **XSS-safe rendering**: all user-generated text (chat, announcements, sub/cheer messages,
+  deleted messages) goes through the same escaping and link/emote detection pipeline
 
-## 🖥️ Tech-Stack
+## 🖥️ Tech Stack
 
-| Bereich   | Technologie |
-|-----------|-------------|
+| Layer     | Technology |
+|-----------|------------|
 | Backend   | Node.js, Express, [`ws`](https://www.npmjs.com/package/ws), [`tmi.js`](https://www.npmjs.com/package/tmi.js) |
-| Frontend  | Vanilla HTML/CSS/JavaScript (keine Frameworks, keine Build-Tools) |
+| Frontend  | Vanilla HTML/CSS/JavaScript (no frameworks, no build tools) |
 | APIs      | Twitch Helix API, Twitch IRC (via tmi.js), FrankerFaceZ, BetterTTV, 7TV |
 
-Es gibt bewusst keine Frontend-Frameworks, Bundler oder Build-Schritte – das Projekt lässt sich
-direkt ausführen und ist leicht nachvollziehbar.
+There are deliberately no frontend frameworks, bundlers, or build steps – the project runs
+directly and is easy to follow.
 
-## 📁 Projektstruktur
+## 📁 Project Structure
 
 ```
 project/
-├── server.js                # Einstiegspunkt: Express/WebSocket-Server, verdrahtet alle Module
-├── src/                      # Backend-Module
-│   ├── config.js             # Lädt/prüft Umgebungsvariablen (.env)
-│   ├── logger.js             # Strukturiertes, zeitgestempeltes Server-Logging
-│   ├── helpers.js            # Kleine geteilte Helfer (sendToClient, Emote-Parsing, Farben)
-│   ├── helixClient.js        # Generischer Wrapper um die Twitch-Helix-API (inkl. Pagination)
-│   ├── twitchServices.js     # Bot-Liste, Badges, Chatters/Mods/VIPs, Polls/Predictions, Emotes
-│   ├── userRoster.js         # Aufbau/Pflege der Mod-/VIP-/User-Listen, Timeouts, Sub-Tiers
-│   ├── clientState.js        # Zustands-Objekt pro WebSocket-Verbindung
-│   ├── tmiEvents.js          # Alle tmi.js-Event-Handler (Nachrichten, Bans, Subs, Raids, ...)
-│   ├── oauth.js              # OAuth-Flow, Login, /callback-Route, State-Persistenz
-│   └── wsHandlers.js         # WebSocket-Nachrichten-Handler (Channel, Mod-Aktionen, Polls, ...)
-└── public/                    # Frontend (statisch ausgeliefert)
+├── server.js                # Entry point: Express/WebSocket server, wires up all modules
+├── src/                      # Backend modules
+│   ├── config.js             # Loads/validates environment variables (.env)
+│   ├── logger.js             # Structured, timestamped server logging
+│   ├── helpers.js            # Small shared helpers (sendToClient, emote parsing, colors)
+│   ├── helixClient.js        # Generic wrapper around the Twitch Helix API (incl. pagination)
+│   ├── twitchServices.js     # Bot list, badges, chatters/mods/vips, polls/predictions, emotes
+│   ├── userRoster.js         # Builds/maintains mod/VIP/user lists, timeouts, sub tiers
+│   ├── clientState.js        # Per-WebSocket-connection state object
+│   ├── tmiEvents.js          # All tmi.js event handlers (messages, bans, subs, raids, ...)
+│   ├── oauth.js              # OAuth flow, login, /callback route, state persistence
+│   └── wsHandlers.js         # WebSocket message handlers (channel, mod actions, polls, ...)
+└── public/                    # Frontend (served statically)
     ├── index.html             # Markup
     ├── css/
-    │   └── style.css          # Gesamtes Styling
+    │   └── style.css          # All styling
     └── js/
-        ├── state.js           # Globaler State, DOM-Referenzen, Storage-Helfer
-        ├── websocket.js       # WebSocket-Verbindung, Reconnect, Server-Nachrichten-Routing
-        ├── channels.js        # Channel-/Tab-Verwaltung
-        ├── chat.js            # Chat-Rendering, Emote-/Link-Pipeline
-        ├── sidebar.js         # User-Liste, Event-Log, Poll-/Prediction-Anzeige
-        ├── userPanel.js       # User-Info-Panel, Mod-Aktionen
-        └── main.js            # Event-Wiring & Bootstrap
+        ├── state.js           # Global state, DOM references, storage helpers
+        ├── websocket.js       # WebSocket connection, reconnect, server message routing
+        ├── channels.js        # Channel/tab management
+        ├── chat.js            # Chat rendering, emote/link pipeline
+        ├── sidebar.js         # User list, event log, poll/prediction display
+        ├── userPanel.js       # User info panel, mod actions
+        ├── emotePicker.js     # Emote picker for the chat input
+        └── main.js            # Event wiring & bootstrap
 ```
 
 ## 🚀 Installation & Setup
 
-### Voraussetzungen
+### Requirements
 
 - [Node.js](https://nodejs.org/) ≥ 18
-- Ein Twitch-Account
-- Eine registrierte Twitch-Anwendung (siehe unten)
+- A Twitch account
+- A registered Twitch application (see below)
 
-### 1. Repository klonen & Abhängigkeiten installieren
+### 1. Clone the repository & install dependencies
 
 ```bash
 git clone https://github.com/Epyxx/StreamDesk.git
@@ -95,101 +99,100 @@ cd StreamDesk
 npm install
 ```
 
-### 2. Twitch-Anwendung registrieren
+### 2. Register a Twitch application
 
-1. Öffne die [Twitch Developer Console](https://dev.twitch.tv/console/apps) und klicke auf
+1. Open the [Twitch Developer Console](https://dev.twitch.tv/console/apps) and click
    **Register Your Application**.
-2. Vergib einen Namen (z.B. `StreamDesk – Lokale Instanz`).
-3. Trage als **OAuth Redirect URL** ein:
+2. Give it a name (e.g. `StreamDesk – Local Instance`).
+3. Set the **OAuth Redirect URL** to:
    ```
    http://localhost:3000/callback
    ```
-4. Kategorie: `Application Integration` (oder eine passende Kategorie deiner Wahl).
-5. Nach dem Erstellen erhältst du eine **Client-ID**; über **New Secret** generierst du ein
-   **Client-Secret**.
+4. Category: `Application Integration` (or any category that fits).
+5. After creating the app you get a **Client ID**; click **New Secret** to generate a
+   **Client Secret**.
 
-### 3. Umgebungsvariablen konfigurieren
+### 3. Configure environment variables
 
-Kopiere `.env.example` zu `.env` und trage deine Zugangsdaten ein:
+Copy `.env.example` to `.env` and fill in your credentials:
 
 ```bash
 cp .env.example .env
 ```
 
 ```env
-TWITCH_CLIENT_ID=deine_client_id
-TWITCH_CLIENT_SECRET=dein_client_secret
+TWITCH_CLIENT_ID=your_client_id
+TWITCH_CLIENT_SECRET=your_client_secret
 TWITCH_REDIRECT_URI=http://localhost:3000/callback
 PORT=3000
 ```
 
-> ⚠️ Die `.env`-Datei enthält geheime Zugangsdaten und darf niemals committet werden
-> (sie ist bereits über `.gitignore` ausgeschlossen).
+> ⚠️ The `.env` file contains secrets and must never be committed
+> (it's already excluded via `.gitignore`).
 
-### 4. Hosting unter einem Unterverzeichnis (Reverse Proxy)
+### 4. Hosting under a subdirectory (reverse proxy)
 
-Wird StreamDesk über einen Reverse Proxy erreichbar gemacht (z.B. `https://example.com/streamdesk`
-statt `http://localhost:3000`), **muss** `TWITCH_REDIRECT_URI` exakt auf die öffentlich
-erreichbare Callback-URL zeigen:
+If StreamDesk is exposed through a reverse proxy (e.g. `https://example.com/streamdesk` instead
+of `http://localhost:3000`), `TWITCH_REDIRECT_URI` **must** point exactly at the publicly
+reachable callback URL:
 
 ```env
 TWITCH_REDIRECT_URI=https://example.com/streamdesk/callback
 ```
 
-Diese URL muss **zusätzlich identisch** als OAuth Redirect URL in der
-[Twitch Developer Console](https://dev.twitch.tv/console/apps) hinterlegt sein – Twitch leitet
-den Browser nach dem Login exakt an die dort registrierte (und hier konfigurierte) Adresse
-weiter. Bleibt `TWITCH_REDIRECT_URI` auf `http://localhost:3000/callback` stehen, während die App
-öffentlich unter einer anderen Adresse läuft, landet der Login-Redirect fälschlicherweise auf
-`localhost` statt auf der öffentlichen URL.
+This URL must **also be registered identically** as an OAuth Redirect URL in the
+[Twitch Developer Console](https://dev.twitch.tv/console/apps) – Twitch redirects the browser
+after login to exactly the address registered there (and configured here). If
+`TWITCH_REDIRECT_URI` is left at `http://localhost:3000/callback` while the app is publicly
+hosted elsewhere, the login redirect will incorrectly land on `localhost`.
 
-Der Reverse Proxy muss außerdem WebSocket-Upgrades (nicht nur normale HTTP-Requests) für
-denselben Pfad an den Node-Prozess durchreichen, da die Live-Verbindung (Chat, Events, ...) über
-WebSocket läuft.
+The reverse proxy must also forward WebSocket upgrades (not just regular HTTP requests) for the
+same path to the Node process, since the live connection (chat, events, ...) runs over
+WebSocket.
 
-### 5. Server starten
+### 5. Start the server
 
 ```bash
 npm start
 ```
 
-Für Entwicklung mit automatischem Neustart bei Dateiänderungen:
+For development with automatic restarts on file changes:
 
 ```bash
 npm run dev
 ```
 
-Anschließend die Anwendung unter [http://localhost:3000](http://localhost:3000) öffnen und über
-**„Mit Twitch anmelden"** einloggen.
+Then open [http://localhost:3000](http://localhost:3000) in your browser and log in via
+**"Log in with Twitch"**.
 
 ## 🐳 Docker
 
 📦 **Docker Hub:** [hub.docker.com/r/epyx/streamdesk](https://hub.docker.com/r/epyx/streamdesk)
 
-StreamDesk ist zustandslos auf Server-Seite (der eigentliche Chat-/Event-Verlauf liegt im
-`localStorage` des Browsers) – ein Container benötigt daher **kein** Volume für persistente Daten,
-lediglich die drei Twitch-Umgebungsvariablen.
+StreamDesk is stateless on the server side (the actual chat/event history lives in the
+browser's `localStorage`) – a container therefore needs **no volume** for persistent data, just
+the three Twitch environment variables.
 
-### Fertiges Image von Docker Hub
+### Prebuilt image from Docker Hub
 
 ```bash
 docker run -d \
   --name streamdesk \
   --restart unless-stopped \
   -p 3000:3000 \
-  -e TWITCH_CLIENT_ID=deine_client_id \
-  -e TWITCH_CLIENT_SECRET=dein_client_secret \
+  -e TWITCH_CLIENT_ID=your_client_id \
+  -e TWITCH_CLIENT_SECRET=your_client_secret \
   -e TWITCH_REDIRECT_URI=https://example.com/streamdesk/callback \
   epyx/streamdesk:latest
 ```
 
-Oder mit einer `.env`-Datei statt einzelner `-e`-Flags:
+Or with an `.env` file instead of individual `-e` flags:
 
 ```bash
 docker run -d --name streamdesk --restart unless-stopped -p 3000:3000 --env-file .env epyx/streamdesk:latest
 ```
 
-### Selbst bauen
+### Build it yourself
 
 ```bash
 git clone https://github.com/Epyxx/StreamDesk.git
@@ -198,23 +201,23 @@ docker build -t streamdesk .
 docker run -d --name streamdesk --restart unless-stopped -p 3000:3000 --env-file .env streamdesk
 ```
 
-### Mit Docker Compose
+### With Docker Compose
 
 ```bash
 docker compose up -d --build
 ```
 
-(`docker-compose.yml` liegt bereits im Repo – baut standardmäßig lokal aus dem Quellcode; die
-`image:`-Zeile darin kann alternativ auskommentiert werden, um stattdessen direkt
-`epyx/streamdesk:latest` von Docker Hub zu verwenden.)
+(`docker-compose.yml` is already in the repo – it builds locally from source by default; the
+`image:` line inside it can be uncommented instead to use `epyx/streamdesk:latest` from Docker
+Hub directly.)
 
-### Reverse Proxy vor dem Container (Unterverzeichnis + WebSocket)
+### Reverse proxy in front of the container (subdirectory + WebSocket)
 
-Läuft der Container – wie im Abschnitt oben beschrieben – hinter einem Reverse Proxy unter einem
-Unterverzeichnis, muss dieser sowohl normale HTTP-Requests als auch WebSocket-Upgrades an
-`http://<container-host>:3000/` weiterleiten. Zwei Beispiele:
+If the container – as described above – runs behind a reverse proxy under a subdirectory, that
+proxy needs to forward both regular HTTP requests and WebSocket upgrades to
+`http://<container-host>:3000/`. Two examples:
 
-**Apache** (≥ 2.4.47, benötigt `a2enmod proxy proxy_http proxy_wstunnel headers`):
+**Apache** (≥ 2.4.47, requires `a2enmod proxy proxy_http proxy_wstunnel headers`):
 
 ```apache
 <Location /streamdesk/>
@@ -235,70 +238,70 @@ location /streamdesk/ {
 }
 ```
 
-In beiden Fällen `TWITCH_REDIRECT_URI` (siehe oben) exakt auf die öffentliche
-`.../streamdesk/callback`-URL setzen und identisch in der Twitch Developer Console hinterlegen.
+In both cases, set `TWITCH_REDIRECT_URI` (see above) to the exact public
+`.../streamdesk/callback` URL and register the same value in the Twitch Developer Console.
 
-### Automatischer Build & Publish (für Maintainer)
+### Automatic build & publish (for maintainers)
 
-`.github/workflows/docker-publish.yml` baut das Image bei jedem Push auf `main` sowie bei
-Git-Tags (`v*`) automatisch für `linux/amd64` und `linux/arm64` und veröffentlicht es als
-`epyx/streamdesk` auf Docker Hub. Bei Pushes auf `main` wird zusätzlich die Kurzbeschreibung und
-die ausführliche Overview-Seite des Docker-Hub-Repositories aus [`docker/README.md`](docker/README.md)
-aktuell gehalten. Dafür müssen einmalig zwei Secrets im Repository hinterlegt werden
+`.github/workflows/docker-publish.yml` automatically builds the image for `linux/amd64` and
+`linux/arm64` on every push to `main` and on Git tags (`v*`), and publishes it as
+`epyx/streamdesk` on Docker Hub. On pushes to `main`, it also keeps the Docker Hub repository's
+short description and full overview page in sync with [`docker/README.md`](docker/README.md).
+This requires two secrets to be configured once in the repository
 (**Settings → Secrets and variables → Actions → New repository secret**):
 
-| Secret | Wert |
+| Secret | Value |
 |---|---|
-| `DOCKERHUB_USERNAME` | Docker-Hub-Benutzername (`epyx`) |
-| `DOCKERHUB_TOKEN` | Docker-Hub **Access Token** (nicht das Account-Passwort) – erstellbar unter [hub.docker.com/settings/security](https://hub.docker.com/settings/security) |
+| `DOCKERHUB_USERNAME` | Docker Hub username (`epyx`) |
+| `DOCKERHUB_TOKEN` | Docker Hub **access token** (not the account password) – create one at [hub.docker.com/settings/security](https://hub.docker.com/settings/security) |
 
-## 🔑 Verwendete Twitch-Scopes
+## 🔑 Twitch Scopes Used
 
-| Scope | Zweck |
+| Scope | Purpose |
 |---|---|
-| `chat:read`, `chat:edit` | Chat lesen und schreiben |
-| `channel:moderate`, `moderation:read` | Timeout/Ban/Nachrichten löschen |
-| `channel:read:subscriptions` | Abo-Informationen im User-Info-Panel |
-| `moderator:read:followers` | Follow-Dauer im User-Info-Panel |
-| `moderator:read:chatters` | Aktuelle Chatter-Liste (Mods/VIPs/User) |
-| `channel:read:vips` | VIP-Liste (nur als Broadcaster nutzbar, siehe unten) |
-| `channel:read:polls`, `channel:manage:polls` | Umfragen anzeigen/erstellen/beenden |
-| `channel:read:predictions`, `channel:manage:predictions` | Predictions anzeigen/verwalten |
+| `chat:read`, `chat:edit` | Read and send chat messages |
+| `channel:moderate`, `moderation:read` | Timeout/ban/delete messages |
+| `channel:read:subscriptions` | Subscription info in the user info panel |
+| `moderator:read:followers` | Follow duration in the user info panel |
+| `moderator:read:chatters` | Current chatter list (mods/VIPs/users) |
+| `channel:read:vips` | VIP list (broadcaster-only, see below) |
+| `channel:read:polls`, `channel:manage:polls` | View/create/end polls |
+| `channel:read:predictions`, `channel:manage:predictions` | View/manage predictions |
+| `user:read:emotes` | Resolves your own usable Twitch emotes (subscriber emotes from every channel you're subscribed to, bit-tier and follower emotes) – used to correctly render emotes in your own sent messages (Twitch doesn't echo them back) and to populate the emote picker |
 
-## ⚠️ Bekannte Einschränkungen der Twitch-API
+## ⚠️ Known Twitch API Limitations
 
-Diese Punkte sind **keine Bugs**, sondern Grenzen der öffentlichen Twitch-API, mit denen das
-Tool bewusst und transparent umgeht:
+These are **not bugs**, but limitations of the public Twitch API that this tool deliberately and
+transparently works around:
 
-- `moderation/moderators` und `channels/vips` lassen sich laut Twitch **ausschließlich mit dem
-  Token des Broadcasters** abfragen – selbst ein regulärer Moderator bekommt hier eine
-  Berechtigungs-Absage. In fremden Channels ohne eigene Mod-Rechte fällt StreamDesk daher auf die
-  IRC-NAMES-Liste und zuletzt gesehene Chat-Badges zurück.
-- Für VIP-Beförderungen gibt es **kein Echtzeit-IRC-Signal** (anders als bei Mods, die per
-  `MODE +o/-o` sofort erkannt werden) – ein neuer VIP-Status wird erst mit der nächsten
-  Chat-Nachricht des Users oder dem nächsten periodischen Roster-Abgleich sichtbar.
-- Es existiert **keine öffentliche Twitch-API**, über die Zuschauer bei Umfragen/Predictions
-  abstimmen können – StreamDesk bietet daher bewusst nur Anzeige und Verwaltung, keine
-  Abstimm-Funktion.
+- `moderation/moderators` and `channels/vips` can, per Twitch, **only be queried with the
+  broadcaster's own token** – even a regular moderator gets denied here. In channels where you
+  don't have mod rights, StreamDesk therefore falls back to the IRC NAMES list and the most
+  recently seen chat badges.
+- There is **no real-time IRC signal for VIP promotions** (unlike mods, which are detected
+  instantly via `MODE +o/-o`) – a new VIP status only becomes visible with that user's next chat
+  message or the next periodic roster refresh.
+- There is **no public Twitch API** that lets viewers vote in polls/predictions – StreamDesk
+  therefore deliberately only offers viewing and management, not a voting feature.
 
-## 🛡️ Sicherheit
+## 🛡️ Security
 
-- Login ausschließlich über den offiziellen Twitch-OAuth-Flow – StreamDesk sieht oder speichert
-  niemals dein Passwort.
-- Sämtlicher nutzergenerierter Text (Chatnachrichten, Ankündigungen, Sub-/Cheer-Nachrichten,
-  gelöschte Nachrichten) wird clientseitig konsequent escaped, bevor er ins DOM eingefügt wird;
-  Links und Emotes werden über eine dedizierte, token-basierte Pipeline erkannt – nie über
-  direkte HTML-Interpolation von Nutzereingaben.
-- Zugangsdaten (`TWITCH_CLIENT_SECRET` etc.) werden ausschließlich serverseitig über
-  Umgebungsvariablen verwaltet und niemals an den Client übertragen.
+- Login runs exclusively through the official Twitch OAuth flow – StreamDesk never sees or
+  stores your password.
+- All user-generated text (chat messages, announcements, sub/cheer messages, deleted messages)
+  is consistently escaped client-side before being inserted into the DOM; links and emotes are
+  detected via a dedicated, token-based pipeline – never through direct HTML interpolation of
+  user input.
+- Credentials (`TWITCH_CLIENT_SECRET`, etc.) are managed exclusively server-side via environment
+  variables and are never sent to the client.
 
-## 📄 Lizenz
+## 📄 License
 
-Dieses Projekt steht unter der [MIT-Lizenz](LICENSE).
+This project is licensed under the [MIT License](LICENSE).
 
 ## 🙏 Credits
 
-- [tmi.js](https://github.com/tmijs/tmi.js) – Twitch-IRC-Client
+- [tmi.js](https://github.com/tmijs/tmi.js) – Twitch IRC client
 - [FrankerFaceZ](https://www.frankerfacez.com/), [BetterTTV](https://betterttv.com/),
-  [7TV](https://7tv.app/) – Drittanbieter-Emotes
-- Entwickelt von [Epyx](https://github.com/Epyxx)
+  [7TV](https://7tv.app/) – third-party emotes
+- Built by [Epyx](https://github.com/Epyxx)

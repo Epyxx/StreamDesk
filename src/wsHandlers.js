@@ -1,6 +1,6 @@
 const { fetchHelix } = require('./helixClient');
 const {
-    loadChannelBadges, getEmotes,
+    loadChannelBadges, getEmotes, fetchUserEmotes,
     fetchActivePoll, createPollHelix, patchPollHelix,
     fetchActivePrediction, createPredictionHelix, patchPredictionHelix,
 } = require('./twitchServices');
@@ -127,12 +127,19 @@ async function handleResolvePrediction(ws, cs, msg) {
 async function handleJoinChannel(ws, cs, channel) {
     const ch = channel.replace('#', '').toLowerCase();
     if (ch === cs.username) cs.isModerator[ch] = true; // eigener Channel: immer volle Mod-Rechte
+    let baselineTimeout = null;
     if (!cs.channels.has(ch)) {
         log('CHANNEL', `Trete #${ch} bei`);
-        // Während dieses Fensters gelten eingehende JOIN/PART-Events als "Vorstellung" der schon
-        // anwesenden Chatter (Twitch schickt davon oft einen ganzen Schwall direkt nach dem
-        // Verbinden) - nur die Liste wird aktualisiert, keine Chat-/Event-Meldung dafür.
-        cs.joinSettling[ch] = Date.now() + 6000;
+        // Bis die erste Roster-Momentaufnahme vorliegt (siehe refreshUserList unten), gelten
+        // eingehende JOIN/PART-Events als "Vorstellung" der schon anwesenden Chatter (Twitch
+        // schickt davon oft einen ganzen Schwall direkt nach dem Verbinden) - nur die Liste wird
+        // aktualisiert, keine Chat-/Event-Meldung dafür. Ein fester Zeitfenster-Timer allein war
+        // hier zu unzuverlässig (bei größeren Channels/langsamen Helix-Antworten liefen einzelne
+        // "echte" JOIN-Events erst NACH Fensterende ein und spammten den Chat) - daher zusätzlich
+        // an das tatsächliche Ende des ersten Roster-Abrufs gekoppelt; das Zeitlimit bleibt nur
+        // als Sicherheitsnetz, falls dieser ungewöhnlich lange braucht oder fehlschlägt.
+        cs.rosterBaselineReady[ch] = false;
+        baselineTimeout = setTimeout(() => { cs.rosterBaselineReady[ch] = true; }, 10000);
         await cs.tmiClient.join('#' + ch);
         cs.channels.add(ch);
         if (!cs.recentMessages[ch]) cs.recentMessages[ch] = [];
@@ -151,15 +158,35 @@ async function handleJoinChannel(ws, cs, channel) {
     }
     // refreshUserList/refreshPollAndPrediction loggen Fehler bereits selbst und werfen nie
     // erneut - der catch hier ist nur ein Sicherheitsnetz, keine eigene Fehlermeldung nötig.
-    refreshUserList(ws, cs, ch).catch(() => {});
+    // .finally() markiert die Roster-Baseline als bereit, sobald der erste Abruf (egal ob
+    // erfolgreich oder nicht) durchgelaufen ist - bei einem erneuten Aufruf für einen bereits
+    // gejointen Channel ist die Baseline ohnehin schon bereit, das .finally() dann ein No-Op.
+    refreshUserList(ws, cs, ch).catch(() => {}).finally(() => {
+        if (baselineTimeout) clearTimeout(baselineTimeout);
+        cs.rosterBaselineReady[ch] = true;
+    });
+
+    let broadcasterId = cs.broadcasterIds[ch] || null;
+    if (!broadcasterId) {
+        try { const u = await fetchHelix(`users?login=${ch}`, cs.clientId, cs.appAccessToken); broadcasterId = u.data?.[0]?.id; } catch (e) { logWarn('CHANNEL', `Broadcaster-ID für #${ch} nicht ermittelbar: ${e.message}`); }
+        if (broadcasterId) cs.broadcasterIds[ch] = broadcasterId;
+    }
+    if (broadcasterId) refreshPollAndPrediction(ws, cs, ch).catch(() => {});
 
     if (!cs.emoteCache) cs.emoteCache = {};
-    if (!cs.emoteCache[ch]) cs.emoteCache[ch] = await getEmotes(ch, cs.clientId, cs.appAccessToken);
+    if (!cs.emoteCache[ch]) {
+        // FFZ/BTTV/7TV (channel + global) und die eigenen nutzbaren Twitch-Emotes parallel laden.
+        // Letztere werden gebraucht, um Twitch-Emotes in SELBST gesendeten Nachrichten überhaupt
+        // erkennen zu können (siehe tmiEvents.js) sowie für den Emote-Picker im Eingabefeld.
+        const [thirdPartyEmotes, twitchUserEmotes] = await Promise.all([
+            getEmotes(ch, cs.clientId, cs.appAccessToken, broadcasterId),
+            broadcasterId
+                ? fetchUserEmotes(cs.clientId, cs.oauthToken, cs.userId, broadcasterId).catch(e => { logWarn('EMOTES', `Eigene Twitch-Emotes für #${ch} fehlgeschlagen: ${e.message}`); return []; })
+                : Promise.resolve([]),
+        ]);
+        cs.emoteCache[ch] = { ...thirdPartyEmotes, twitch: twitchUserEmotes };
+    }
     const emotes = cs.emoteCache[ch];
-    let broadcasterId = null;
-    try { const u = await fetchHelix(`users?login=${ch}`, cs.clientId, cs.appAccessToken); broadcasterId = u.data?.[0]?.id; } catch (e) { logWarn('CHANNEL', `Broadcaster-ID für #${ch} nicht ermittelbar: ${e.message}`); }
-    if (broadcasterId) cs.broadcasterIds[ch] = broadcasterId;
-    if (broadcasterId) refreshPollAndPrediction(ws, cs, ch).catch(() => {});
 
     if (broadcasterId && !cs.badgeCache.channels[broadcasterId]) {
         cs.badgeCache.channels[broadcasterId] = await loadChannelBadges(cs.clientId, cs.appAccessToken, broadcasterId);
@@ -189,7 +216,7 @@ async function handleLeaveChannel(ws, cs, channel) {
         delete cs.userTimeouts[ch];
         if (cs.pollPredictionIntervals[ch]) { clearInterval(cs.pollPredictionIntervals[ch]); delete cs.pollPredictionIntervals[ch]; }
         delete cs.activePolls[ch]; delete cs.activePredictions[ch]; delete cs.pollAccessLogged[ch]; delete cs.predictionAccessLogged[ch];
-        delete cs.joinSettling[ch]; delete cs.rosterAccessLogged[ch]; delete cs.legacyFallbackLogged[ch];
+        delete cs.rosterBaselineReady[ch]; delete cs.rosterAccessLogged[ch]; delete cs.legacyFallbackLogged[ch];
         sendToClient(ws, { type: 'channel_left', channel: ch });
     }
 }
@@ -330,7 +357,7 @@ function handleLogout(ws, cs) {
     cs.timeoutTimers = {}; cs.userTimeouts = {};
     Object.values(cs.pollPredictionIntervals).forEach(clearInterval);
     cs.pollPredictionIntervals = {}; cs.activePolls = {}; cs.activePredictions = {}; cs.pollAccessLogged = {}; cs.predictionAccessLogged = {};
-    cs.joinSettling = {}; cs.rosterAccessLogged = {}; cs.legacyFallbackLogged = {};
+    cs.rosterBaselineReady = {}; cs.rosterAccessLogged = {}; cs.legacyFallbackLogged = {};
     cs.tmiClient = null; cs.channels.clear(); cs.filters.clear(); cs.recentMessages = {};
     cs.userLists = {}; cs.userBadges = {}; cs.userDisplay = {}; cs.userIdMap = {}; cs.userSubTier = {}; cs.userPartner = {}; cs.userStaff = {}; cs.emoteCache = {};
     cs.broadcasterIds = {}; cs.chattersInitialized = {}; cs.isModerator = {};

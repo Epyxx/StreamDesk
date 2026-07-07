@@ -33,7 +33,7 @@ function createClientState() {
         pollPredictionIntervals: {},
         pollAccessLogged: {},
         predictionAccessLogged: {},
-        joinSettling: {},
+        rosterBaselineReady: {},
         rosterAccessLogged: {},
         legacyFallbackLogged: {},
     };

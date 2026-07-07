@@ -67,4 +67,4 @@ wss.on('connection', (ws) => {
     });
 });
 
-server.listen(PORT, () => log('SERVER', `🚀 StreamDesk v1.0 läuft auf http://localhost:${PORT}`));
+server.listen(PORT, () => log('SERVER', `🚀 StreamDesk v1.1 läuft auf http://localhost:${PORT}`));

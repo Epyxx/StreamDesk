@@ -95,6 +95,9 @@ function switchTab(channelName) {
     if (active) { active.classList.remove('hidden'); active.scrollTop = active.scrollHeight; STATE.autoScroll[name] = true; }
     STATE.unreadCounts[name] = 0;
     renderTabs(); renderSidebar(); updateScrollButton(); updateFilterModalChannel();
+    // Emote-Liste des Pickers ist channelspezifisch - beim Tab-Wechsel schließen statt mit
+    // veraltetem Inhalt für den vorherigen Channel offen zu lassen.
+    toggleEmotePicker(false);
 }
 
 function renderTabs() {

@@ -15,7 +15,8 @@ function connectWebSocket() {
     STATE.ws.onclose = () => {
         STATE.connected = false; STATE.loggedIn = false;
         dom.statusIndicator.className = 'offline'; dom.loginScreen.style.display = 'flex'; dom.app.style.display = 'none';
-        dom.chatInput.disabled = true; dom.btnSend.disabled = true;
+        dom.chatInput.disabled = true; dom.btnSend.disabled = true; dom.btnEmotePicker.disabled = true;
+        toggleEmotePicker(false);
         clientWarn('WS', 'Verbindung getrennt');
         saveAllData(); // Speichern bei Verbindungsabbruch
         stopSaveInterval();
@@ -109,7 +110,7 @@ function handleServerMessage(msg) {
             dom.loginScreen.style.display = 'none';
             dom.app.style.display = 'flex';
             dom.connectedAs.textContent = `@${msg.username}`;
-            dom.chatInput.disabled = false; dom.btnSend.disabled = false;
+            dom.chatInput.disabled = false; dom.btnSend.disabled = false; dom.btnEmotePicker.disabled = false;
             clientLog('AUTH', `Eingeloggt als @${msg.username}`);
             loadSavedChannels();
             startSaveInterval(); // Starte regelmäßiges Speichern

@@ -64,5 +64,5 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
           repository: epyx/streamdesk
-          short-description: "Browserbasiertes Twitch-Chat- & Moderations-Tool mit OAuth-Login, Multi-Channel-Chat und Mod-Tools"
+          short-description: "Browser-based Twitch chat & moderation tool with OAuth login, multi-channel chat and mod tools"
           readme-filepath: ./docker/README.md

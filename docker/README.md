@@ -1,11 +1,10 @@
 # 🔐 StreamDesk
 
-Browserbasiertes Twitch-Chat- und Moderations-Tool. StreamDesk verbindet sich per OAuth sicher
-mit deinem Twitch-Account, zeigt den Chat mehrerer Channels gleichzeitig in Tabs an und bietet
-Moderatoren direkten Zugriff auf Timeouts, Bans, Nachrichten-Löschung, Umfragen, Predictions und
-detaillierte User-Infos.
+A browser-based Twitch chat and moderation tool. StreamDesk securely connects to your Twitch
+account via OAuth, shows chat from multiple channels at once in tabs, and gives moderators
+direct access to timeouts, bans, message deletion, polls, predictions, and detailed user info.
 
-📖 **Vollständige Dokumentation, Quellcode & Issues:** [github.com/Epyxx/StreamDesk](https://github.com/Epyxx/StreamDesk)
+📖 **Full documentation, source code & issues:** [github.com/Epyxx/StreamDesk](https://github.com/Epyxx/StreamDesk)
 
 ## Quick Start
 
@@ -14,14 +13,14 @@ docker run -d \
   --name streamdesk \
   --restart unless-stopped \
   -p 3000:3000 \
-  -e TWITCH_CLIENT_ID=deine_client_id \
-  -e TWITCH_CLIENT_SECRET=dein_client_secret \
+  -e TWITCH_CLIENT_ID=your_client_id \
+  -e TWITCH_CLIENT_SECRET=your_client_secret \
   -e TWITCH_REDIRECT_URI=http://localhost:3000/callback \
   epyx/streamdesk:latest
 ```
 
-Anschließend `http://localhost:3000` (bzw. die eigene Domain) im Browser öffnen und über
-„Mit Twitch anmelden" einloggen.
+Then open `http://localhost:3000` (or your own domain) in a browser and log in via
+"Log in with Twitch".
 
 ## Docker Compose
 
@@ -37,45 +36,46 @@ services:
       - .env
 ```
 
-## Umgebungsvariablen
+## Environment Variables
 
-| Variable | Pflicht | Beschreibung |
+| Variable | Required | Description |
 |---|---|---|
-| `TWITCH_CLIENT_ID` | ✅ | Client-ID der registrierten Twitch-Anwendung |
-| `TWITCH_CLIENT_SECRET` | ✅ | Zugehöriges Client-Secret |
-| `TWITCH_REDIRECT_URI` | ✅ | Muss exakt der in der [Twitch Developer Console](https://dev.twitch.tv/console/apps) hinterlegten OAuth Redirect URL entsprechen |
-| `PORT` | – | Interner Server-Port (Standard: `3000`) |
+| `TWITCH_CLIENT_ID` | ✅ | Client ID of your registered Twitch application |
+| `TWITCH_CLIENT_SECRET` | ✅ | Matching client secret |
+| `TWITCH_REDIRECT_URI` | ✅ | Must exactly match the OAuth Redirect URL registered in the [Twitch Developer Console](https://dev.twitch.tv/console/apps) |
+| `PORT` | – | Internal server port (default: `3000`) |
 
-Eine Twitch-Anwendung lässt sich kostenlos unter [dev.twitch.tv/console/apps](https://dev.twitch.tv/console/apps)
-registrieren – Details dazu in der [README auf GitHub](https://github.com/Epyxx/StreamDesk#-installation--setup).
+You can register a Twitch application for free at
+[dev.twitch.tv/console/apps](https://dev.twitch.tv/console/apps) – details in the
+[README on GitHub](https://github.com/Epyxx/StreamDesk#-installation--setup).
 
 ## Tags
 
-- `latest` – jeweils aktuellster Stand von `main`
-- `X.Y.Z`, `X.Y` – versionierte Releases (Git-Tag `vX.Y.Z`)
+- `latest` – always the current state of `main`
+- `X.Y.Z`, `X.Y` – versioned releases (Git tag `vX.Y.Z`)
 
-Multi-Arch-Image für `linux/amd64` und `linux/arm64`.
+Multi-arch image for `linux/amd64` and `linux/arm64`.
 
-## Hinweise
+## Notes
 
-- Der Container ist zustandslos: Chat-/Event-Verlauf liegt im `localStorage` des Browsers, es wird
-  **kein Volume** für persistente Daten benötigt.
-- Beim Betrieb hinter einem Reverse Proxy (z.B. unter einem Unterverzeichnis) müssen sowohl
-  normale HTTP-Requests als auch WebSocket-Upgrades weitergeleitet werden. Konkrete
-  Apache-/nginx-Beispiele dafür stehen in der
-  [GitHub-Dokumentation](https://github.com/Epyxx/StreamDesk#-docker).
+- The container is stateless: chat/event history lives in the browser's `localStorage`, so
+  **no volume** is needed for persistent data.
+- When running behind a reverse proxy (e.g. under a subdirectory), both regular HTTP requests
+  and WebSocket upgrades need to be forwarded. See the
+  [GitHub documentation](https://github.com/Epyxx/StreamDesk#-docker) for concrete Apache/nginx
+  examples.
 
-## Sicherheitshinweise
+## Security Notes
 
-- Login läuft ausschließlich über den offiziellen Twitch-OAuth-Flow – es werden nie Zugangsdaten
-  manuell eingegeben oder gespeichert.
-- `TWITCH_CLIENT_SECRET` niemals im Klartext in ein Image bauen – ausschließlich zur Laufzeit als
-  Umgebungsvariable übergeben (siehe Beispiele oben).
+- Login runs exclusively through the official Twitch OAuth flow – credentials are never entered
+  or stored manually.
+- Never bake `TWITCH_CLIENT_SECRET` into an image – always pass it as an environment variable at
+  runtime (see examples above).
 
-## Lizenz
+## License
 
 [MIT](https://github.com/Epyxx/StreamDesk/blob/main/LICENSE)
 
 ---
 
-Entwickelt von [Epyx](https://github.com/Epyxx) · Quellcode: [github.com/Epyxx/StreamDesk](https://github.com/Epyxx/StreamDesk)
+Built by [Epyx](https://github.com/Epyxx) · Source: [github.com/Epyxx/StreamDesk](https://github.com/Epyxx/StreamDesk)

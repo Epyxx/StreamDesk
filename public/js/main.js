@@ -35,7 +35,8 @@ document.addEventListener('DOMContentLoaded', () => {
         dom.tabBar.innerHTML = ''; dom.channelsContainer.innerHTML = ''; dom.sidebarContent.innerHTML = '';
         dom.userInfoPanel.classList.remove('open'); dom.sidebar.classList.add('collapsed');
         dom.statusIndicator.className = 'offline'; dom.connectedAs.textContent = '';
-        dom.chatInput.disabled = true; dom.btnSend.disabled = true;
+        dom.chatInput.disabled = true; dom.btnSend.disabled = true; dom.btnEmotePicker.disabled = true;
+        toggleEmotePicker(false);
         localStorage.removeItem(LS_KEYS.AUTH);
         stopSaveInterval();
     });
@@ -79,5 +80,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.querySelectorAll('.modal-overlay').forEach(o => o.addEventListener('click', e => { if(e.target===o) o.style.display='none'; }));
-    document.addEventListener('keydown', e => { if(e.key==='Escape') { dom.modalJoin.style.display='none'; dom.modalFilter.style.display='none'; dom.modalPoll.style.display='none'; dom.modalPrediction.style.display='none'; dom.userInfoPanel.classList.remove('open'); } });
+    document.addEventListener('keydown', e => { if(e.key==='Escape') { dom.modalJoin.style.display='none'; dom.modalFilter.style.display='none'; dom.modalPoll.style.display='none'; dom.modalPrediction.style.display='none'; dom.userInfoPanel.classList.remove('open'); toggleEmotePicker(false); } });
+
+    dom.btnEmotePicker.addEventListener('click', e => { e.stopPropagation(); toggleEmotePicker(); });
+    dom.emotePickerSearchInput.addEventListener('input', renderEmotePicker);
+    document.addEventListener('click', e => {
+        if (!dom.emotePicker.classList.contains('hidden') && !dom.emotePicker.contains(e.target) && e.target !== dom.btnEmotePicker) {
+            toggleEmotePicker(false);
+        }
+    });
 });

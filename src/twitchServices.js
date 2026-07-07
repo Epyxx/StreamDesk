@@ -111,69 +111,121 @@ async function patchPredictionHelix(clientId, oauthToken, broadcasterId, id, sta
     return data.data?.[0];
 }
 
-async function getEmotes(channel, clientId, appAccessToken) {
-    const emotes = { ffz: [], bttv: [], seventv: [] };
-    try {
-        // FFZ
-        try {
-            const ffzRes = await fetch(`https://api.frankerfacez.com/v1/room/${channel}`);
-            if (ffzRes.ok) {
-                const ffzData = await ffzRes.json();
-                const sets = [];
-                if (ffzData.room?.set) sets.push(ffzData.room.set);
-                if (ffzData.room?.sets) sets.push(...Object.keys(ffzData.room.sets));
-                if (ffzData.sets) sets.forEach(setId => {
-                    const set = ffzData.sets[setId];
-                    if (set?.emoticons) set.emoticons.forEach(e => {
-                        emotes.ffz.push({
-                            code: e.name,
-                            url: e.urls?.['1'] || e.urls?.['2'] || `https://cdn.frankerfacez.com/emoticon/${e.id}/1`,
-                            name: e.name
-                        });
-                    });
-                });
-            }
-        } catch (e) {}
+function mapSeventvEmote(e) {
+    const hostUrl = e.data?.host?.url;
+    const fileName = e.data?.host?.files?.[0]?.name;
+    let url;
+    if (hostUrl && fileName) url = `${hostUrl}/${fileName}`;
+    else if (hostUrl) url = `${hostUrl}/${e.id}/1x.webp`;
+    else url = `https://cdn.7tv.app/emote/${e.id}/1x.webp`;
+    return { code: e.name, url, name: e.name };
+}
 
-        // BTTV
+// Lädt sowohl die channel-eigenen als auch die GLOBALEN Emote-Sets von FFZ/BTTV/7TV. Die
+// globalen Sets fehlten früher komplett, wodurch überall gängige globale 7TV-/BTTV-Emotes (nicht
+// an einen bestimmten Channel gebunden) nie erkannt/dargestellt wurden - unabhängig davon, in
+// welchem Channel sie benutzt wurden.
+async function getEmotes(channel, clientId, appAccessToken, broadcasterId) {
+    const emotes = { ffz: [], bttv: [], seventv: [] };
+
+    if (!broadcasterId) {
         try {
             const userData = await fetchHelix(`users?login=${channel}`, clientId, appAccessToken);
-            const userId = userData.data?.[0]?.id;
-            if (userId) {
-                const bttvRes = await fetch(`https://api.betterttv.net/3/cached/users/twitch/${userId}`);
-                if (bttvRes.ok) {
-                    const bttvData = await bttvRes.json();
-                    (bttvData.channelEmotes || []).forEach(e => emotes.bttv.push({ code: e.code, url: `https://cdn.betterttv.net/emote/${e.id}/1x`, name: e.code }));
-                    (bttvData.sharedEmotes || []).forEach(e => emotes.bttv.push({ code: e.code, url: `https://cdn.betterttv.net/emote/${e.id}/1x`, name: e.code }));
-                }
-            }
+            broadcasterId = userData.data?.[0]?.id || null;
         } catch (e) {}
-
-        // 7TV
-        try {
-            const userData2 = await fetchHelix(`users?login=${channel}`, clientId, appAccessToken);
-            const userId2 = userData2.data?.[0]?.id;
-            if (userId2) {
-                const stvRes = await fetch(`https://7tv.io/v3/users/twitch/${userId2}`);
-                if (stvRes.ok) {
-                    const stvData = await stvRes.json();
-                    const emoteSet = stvData.emote_set?.emotes || [];
-                    emoteSet.forEach(e => {
-                        const hostUrl = e.data?.host?.url;
-                        const fileName = e.data?.host?.files?.[0]?.name;
-                        let url;
-                        if (hostUrl && fileName) url = `${hostUrl}/${fileName}`;
-                        else if (hostUrl) url = `${hostUrl}/${e.id}/1x.webp`;
-                        else url = `https://cdn.7tv.app/emote/${e.id}/1x.webp`;
-                        emotes.seventv.push({ code: e.name, url, name: e.name });
-                    });
-                }
-            }
-        } catch (e) {}
-    } catch (e) {
-        logWarn('EMOTES', `Abruf für #${channel} fehlgeschlagen: ${e.message}`);
     }
+
+    // FFZ - Channel
+    try {
+        const ffzRes = await fetch(`https://api.frankerfacez.com/v1/room/${channel}`);
+        if (ffzRes.ok) {
+            const ffzData = await ffzRes.json();
+            const sets = [];
+            if (ffzData.room?.set) sets.push(ffzData.room.set);
+            if (ffzData.room?.sets) sets.push(...Object.keys(ffzData.room.sets));
+            if (ffzData.sets) sets.forEach(setId => {
+                const set = ffzData.sets[setId];
+                if (set?.emoticons) set.emoticons.forEach(e => {
+                    emotes.ffz.push({
+                        code: e.name,
+                        url: e.urls?.['1'] || e.urls?.['2'] || `https://cdn.frankerfacez.com/emoticon/${e.id}/1`,
+                        name: e.name
+                    });
+                });
+            });
+        }
+    } catch (e) {}
+    // FFZ - Global
+    try {
+        const ffzGlobalRes = await fetch('https://api.frankerfacez.com/v1/set/global');
+        if (ffzGlobalRes.ok) {
+            const ffzGlobalData = await ffzGlobalRes.json();
+            (ffzGlobalData.default_sets || []).forEach(setId => {
+                const set = ffzGlobalData.sets?.[setId];
+                if (set?.emoticons) set.emoticons.forEach(e => {
+                    emotes.ffz.push({
+                        code: e.name,
+                        url: e.urls?.['1'] || e.urls?.['2'] || `https://cdn.frankerfacez.com/emoticon/${e.id}/1`,
+                        name: e.name
+                    });
+                });
+            });
+        }
+    } catch (e) {}
+
+    // BTTV - Channel
+    try {
+        if (broadcasterId) {
+            const bttvRes = await fetch(`https://api.betterttv.net/3/cached/users/twitch/${broadcasterId}`);
+            if (bttvRes.ok) {
+                const bttvData = await bttvRes.json();
+                (bttvData.channelEmotes || []).forEach(e => emotes.bttv.push({ code: e.code, url: `https://cdn.betterttv.net/emote/${e.id}/1x`, name: e.code }));
+                (bttvData.sharedEmotes || []).forEach(e => emotes.bttv.push({ code: e.code, url: `https://cdn.betterttv.net/emote/${e.id}/1x`, name: e.code }));
+            }
+        }
+    } catch (e) {}
+    // BTTV - Global
+    try {
+        const bttvGlobalRes = await fetch('https://api.betterttv.net/3/cached/emotes/global');
+        if (bttvGlobalRes.ok) {
+            const bttvGlobalData = await bttvGlobalRes.json();
+            (bttvGlobalData || []).forEach(e => emotes.bttv.push({ code: e.code, url: `https://cdn.betterttv.net/emote/${e.id}/1x`, name: e.code }));
+        }
+    } catch (e) {}
+
+    // 7TV - Channel
+    try {
+        if (broadcasterId) {
+            const stvRes = await fetch(`https://7tv.io/v3/users/twitch/${broadcasterId}`);
+            if (stvRes.ok) {
+                const stvData = await stvRes.json();
+                (stvData.emote_set?.emotes || []).forEach(e => emotes.seventv.push(mapSeventvEmote(e)));
+            }
+        }
+    } catch (e) {}
+    // 7TV - Global
+    try {
+        const stvGlobalRes = await fetch('https://7tv.io/v3/emote-sets/global');
+        if (stvGlobalRes.ok) {
+            const stvGlobalData = await stvGlobalRes.json();
+            (stvGlobalData.emotes || []).forEach(e => emotes.seventv.push(mapSeventvEmote(e)));
+        }
+    } catch (e) {}
+
     return emotes;
+}
+
+// Liefert alle Twitch-Emotes, die der eingeloggte User im angegebenen Channel tatsächlich
+// benutzen darf (eigene freigeschaltete Sub-Emotes aus JEDEM abonnierten Channel, Bit-Tier-
+// Emotes, Follower-Emotes des Channels falls gefolgt, sowie sämtliche globalen Twitch-Emotes) -
+// genau das, was tmi.js für selbst gesendete Nachrichten bräuchte, aber mangels funktionierender
+// API nie liefert (siehe findEmotesInText in helpers.js). Erfordert Scope user:read:emotes.
+async function fetchUserEmotes(clientId, oauthToken, userId, broadcasterId) {
+    return fetchAllPages(
+        `chat/emotes/user?user_id=${userId}&broadcaster_id=${broadcasterId}`,
+        clientId, oauthToken,
+        e => ({ id: e.id, name: e.name })
+    );
 }
 
 module.exports = {
@@ -181,5 +233,5 @@ module.exports = {
     fetchAllChatters, fetchModerators, fetchVips, fetchLegacyChatters,
     fetchActivePoll, createPollHelix, patchPollHelix,
     fetchActivePrediction, createPredictionHelix, patchPredictionHelix,
-    getEmotes,
+    getEmotes, fetchUserEmotes,
 };

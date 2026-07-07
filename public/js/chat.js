@@ -10,6 +10,28 @@ function renderMessageElement(msg) {
     time.textContent = new Date(msg.timestamp).toLocaleTimeString('de-DE', { hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false });
     line.appendChild(time);
 
+    // Mod-Aktionen dauerhaft (nicht nur bei Hover) zwischen Zeitstempel und Badges anzeigen -
+    // bei der eigenen Nachricht nie, da man sich ohnehin nicht selbst timeouten/bannen/die
+    // eigene Nachricht per Mod-Rechten löschen kann (Twitch verbietet das serverseitig).
+    const isOwnMessage = !!(msg.login && msg.login === STATE.ownUsername);
+    if (!msg.deleted && !isOwnMessage && STATE.canModerate[msg.channel]) {
+        const actions = document.createElement('span'); actions.className = 'msg-actions';
+        if (msg.id) {
+            const delBtn = document.createElement('span');
+            delBtn.className = 'chat-delete-btn'; delBtn.dataset.action = 'delete'; delBtn.textContent = '🗑'; delBtn.title = 'Nachricht löschen';
+            delBtn.addEventListener('click', e => { e.stopPropagation(); deleteMessage(msg.id, msg.channel); });
+            actions.appendChild(delBtn);
+        }
+        const login = msg.login || msg.username;
+        if (login) {
+            const banBtn = document.createElement('span');
+            banBtn.className = 'chat-delete-btn'; banBtn.dataset.action = 'ban'; banBtn.textContent = '🚫'; banBtn.title = `@${login} sperren`;
+            banBtn.addEventListener('click', e => { e.stopPropagation(); quickBan(login, msg.channel); });
+            actions.appendChild(banBtn);
+        }
+        if (actions.children.length) line.appendChild(actions);
+    }
+
     if (msg.badges?.length && !msg.deleted) {
         const badgeMap = STATE.badgeMap[msg.channel] || { global:{}, channel:{} };
         const bs = document.createElement('span'); bs.className='chat-badges';
@@ -35,21 +57,6 @@ function renderMessageElement(msg) {
     if (!msg.deleted) msgSpan.querySelectorAll('.mention').forEach(m => m.addEventListener('click', () => { const u = m.dataset.username; if (u) requestUserInfo(u, msg.channel); }));
     line.appendChild(msgSpan);
 
-    if (!msg.deleted && STATE.canModerate[msg.channel]) {
-        if (msg.id) {
-            const delBtn = document.createElement('span');
-            delBtn.className = 'chat-delete-btn'; delBtn.dataset.action = 'delete'; delBtn.textContent = '🗑'; delBtn.title = 'Nachricht löschen';
-            delBtn.addEventListener('click', e => { e.stopPropagation(); deleteMessage(msg.id, msg.channel); });
-            line.appendChild(delBtn);
-        }
-        const login = msg.login || msg.username;
-        if (login) {
-            const banBtn = document.createElement('span');
-            banBtn.className = 'chat-delete-btn'; banBtn.dataset.action = 'ban'; banBtn.textContent = '🚫'; banBtn.title = `@${login} sperren`;
-            banBtn.addEventListener('click', e => { e.stopPropagation(); quickBan(login, msg.channel); });
-            line.appendChild(banBtn);
-        }
-    }
     return line;
 }
 
